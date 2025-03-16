@@ -33,7 +33,8 @@ class Solver(object):
         valid_data = dW
         for step in range(self.num_iterations+1):
             if step % self.logging_frequency == 0:
-                loss, cost, ratio = self.model(valid_data, training=True)
+                # loss, cost, ratio = self.model(valid_data, training=True)
+                loss, cost, ratio = self.model(valid_data)
                 y_init = self.y_init.numpy()[0][0]
                 elapsed_time = time.time() - start_time
                 training_history.append([step, cost, y_init, loss, ratio])
@@ -60,7 +61,8 @@ class WholeNet(tf.keras.Model):
         self.z_net = FNNetZ()
         self.u_net = FNNetU()
 
-    def call(self, dw, training):
+    # def call(self, dw, training):
+    def call(self, dw):
         x_init = tf.ones([1, self.config.dim_x], dtype=tf.dtypes.float64) * 1.0
         time_stamp = np.arange(0, self.config.num_time_interval) * self.config.delta_t
         all_one_vec = tf.ones([tf.shape(dw)[0], 1], dtype=tf.dtypes.float64)
@@ -70,8 +72,10 @@ class WholeNet(tf.keras.Model):
         H = 0.0 # The constraint term
         for t in range(0, self.config.num_time_interval):
             data = time_stamp[t], x
-            z = self.z_net(data, training)
-            u = self.u_net(data, training)
+            # z = self.z_net(data, training)
+            z = self.z_net(data, training=True)
+            # u = self.u_net(data, training)
+            u = self.u_net(data, training=True)
             l = l + self.config.f_fn(time_stamp[t], x, u) * self.config.delta_t
             H = H + self.config.Hu_fn(time_stamp[t], x, y, z, u)
             b_ = self.config.b_fn(time_stamp[t], x, u)
@@ -116,13 +120,13 @@ class FNNetZ(tf.keras.Model):
         t, x = inputs
         ts = tf.ones([tf.shape(x)[0], 1], dtype=tf.dtypes.float64) * t
         x = tf.concat([ts, x], axis=1)
-        x = self.bn_layers[0](x, training)
+        x = self.bn_layers[0](x, training=True)
         for i in range(len(self.dense_layers) - 1):
             x = self.dense_layers[i](x)
-            x = self.bn_layers[i+1](x, training)
+            x = self.bn_layers[i+1](x, training=True)
             x = tf.nn.relu(x)
         x = self.dense_layers[-1](x)
-        x = self.bn_layers[-1](x, training)
+        x = self.bn_layers[-1](x, training=True)
         return x
 
 class FNNetU(tf.keras.Model):
@@ -151,13 +155,13 @@ class FNNetU(tf.keras.Model):
         t, x = inputs
         ts = tf.ones([x.get_shape()[0], 1], dtype=tf.dtypes.float64) * t
         x = tf.concat([ts, x], axis=1)
-        x = self.bn_layers[0](x, training)
+        x = self.bn_layers[0](x, training=True)
         for i in range(len(self.dense_layers) - 1):
             x = self.dense_layers[i](x)
-            x = self.bn_layers[i+1](x, training)
+            x = self.bn_layers[i+1](x, training=True)
             x = tf.nn.relu(x)
         x = self.dense_layers[-1](x)
-        x = self.bn_layers[-1](x, training)
+        x = self.bn_layers[-1](x, training=True)
         return x
 
 class Config(object):
